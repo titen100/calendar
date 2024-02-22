@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -17,12 +18,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -66,6 +68,8 @@ val logic = CalendarLogic()
 
 @RequiresApi(Build.VERSION_CODES.O)
 val month = LocalDate.now(ZoneId.systemDefault()).monthValue
+@RequiresApi(Build.VERSION_CODES.O)
+val jan1 = mutableLongStateOf(logic.daysSinceJanuaryFirst())
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -94,6 +98,9 @@ fun CalendarGrid() {
     val currentMonth = logic.getCurrentMonth()
     val daysInMonth = currentMonth.lengthOfMonth()
     val firstDayOfWeek = currentMonth.atDay(1).dayOfWeek.value % 7
+
+    // Keep track of the selected day
+    val selectedDay = remember { mutableIntStateOf(0) }
 
     LazyColumn {
         item {
@@ -131,14 +138,24 @@ fun CalendarGrid() {
                                 .border(1.dp, Color(0xFFF0F8FF)), // Add padding to create space between the dates
                             contentAlignment = Alignment.Center // Center the content in the box
                         ) {
+                            // Clickable text for each date
                             Text(
                                 text = date.toString(),
-                                color = Color(0xFFF0F8FF), // Change the color of the text
+                                color = if (date == selectedDay.intValue) Color.Red else Color(0xFFF0F8FF), // Change the color if the date is selected
                                 style = TextStyle(
                                     fontSize = 30.sp, // Adjust the text size
                                     fontFamily = FontFamily.Serif // Change the font
                                 ),
-                                textAlign = TextAlign.Center // Center the text
+                                textAlign = TextAlign.Center, // Center the text
+                                modifier = Modifier.clickable {
+                                    // Update the selected day when clicked
+                                    selectedDay.intValue = date
+                                    // Calculate the number of days since January 1st up to this date
+                                    val currentDate = LocalDate.of(currentMonth.year, currentMonth.monthValue, date)
+                                    currentDate.dayOfYear
+                                    // Show the dialog with the number of days since January 1st
+                                    jan1.longValue = logic.daysSinceJanuaryFirst()
+                                }
                             )
                         }
                     } else {
@@ -147,31 +164,15 @@ fun CalendarGrid() {
                 }
             }
         }
-
+        item {
+            Row (modifier = Modifier.fillMaxWidth().height(50.dp).padding(vertical = 15.dp)){
+                Text(text = "days since January 1st: ${jan1.longValue}",
+                    color = Color(0xFFF0F8FF))
+            }
+        }
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
-@Composable
-fun DayClickDialog(day: Int) {
-    AlertDialog(
-        onDismissRequest = { /* Dismiss the dialog */ },
-        title = { Text(text = "Days Since January 1st") },
-        text = {
-            Text(
-                text = "Number of days since January 1st: $day",
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(8.dp)
-            )
-        },
-        confirmButton = {
-            Button(
-                onClick = { /* Dismiss the dialog */ },
-            ) {
-                Text("OK")
-            }
-        }
-    )
-}
+
 
 
